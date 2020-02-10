@@ -4,7 +4,7 @@ import math
 
 import numpy as np
 
-
+# 移动最小二乘法变形
 class WarpMLS:
     def __init__(self, src, src_pts, dst_pts, dst_w, dst_h, trans_ratio=1.):
         self.src = src
@@ -33,12 +33,12 @@ class WarpMLS:
             return
 
         i = 0
+        # 初始化i，j为0，
         while 1:
             if self.dst_w <= i < self.dst_w + self.grid_size - 1:
                 i = self.dst_w - 1
             elif i >= self.dst_w:
                 break
-
             j = 0
             while 1:
                 if self.dst_h <= j < self.dst_h + self.grid_size - 1:
@@ -106,7 +106,7 @@ class WarpMLS:
     def gen_img(self):
         src_h, src_w = self.src.shape[:2]
         dst = np.zeros_like(self.src, dtype=np.float32)
-
+        # 宽度和高度按grid_size进行变换，此处取100，宽度仅运行一次
         for i in np.arange(0, self.dst_h, self.grid_size):
             for j in np.arange(0, self.dst_w, self.grid_size):
                 ni = i + self.grid_size
@@ -121,6 +121,7 @@ class WarpMLS:
 
                 di = np.reshape(np.arange(h), (-1, 1))
                 dj = np.reshape(np.arange(w), (1, -1))
+                # 移动最小二乘法变形
                 delta_x = self.__bilinear_interp(di / h, dj / w,
                                                  self.rdx[i, j], self.rdx[i, nj],
                                                  self.rdx[ni, j], self.rdx[ni, nj])

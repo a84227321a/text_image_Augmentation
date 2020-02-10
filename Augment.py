@@ -31,6 +31,7 @@ def distort(src, segment):
 
     half_thresh = thresh * 0.5
     count = 0
+    # 坐标剪切变形
     for cut_idx in np.arange(1, segment, 1):
         src_pts.append([cut * cut_idx, 0])
         src_pts.append([cut * cut_idx, img_h])
@@ -39,9 +40,9 @@ def distort(src, segment):
         dst_pts.append([cut * cut_idx + np.random.randint(thresh) - half_thresh,
                         img_h + np.random.randint(thresh) - half_thresh])
         count+=1
-    print(count)
-    print('1111',src_pts)
-    print('2222',dst_pts)
+    # print(count)
+    # print('1111',src_pts)
+    # print('2222',dst_pts)
     trans = WarpMLS(src, src_pts, dst_pts, img_w, img_h)
     dst = trans.generate()
 
@@ -70,7 +71,7 @@ def stretch(src, segment):
     dst_pts.append([0, img_h])
 
     half_thresh = thresh * 0.5
-
+    # 坐标拉伸
     for cut_idx in np.arange(1, segment, 1):
         move = np.random.randint(thresh) - half_thresh
         src_pts.append([cut * cut_idx, 0])
@@ -97,6 +98,7 @@ def perspective(src):
     src_pts.append([img_w, img_h])
     src_pts.append([0, img_h])
 
+    # 透视变换后对应的四点坐标
     dst_pts.append([0, np.random.randint(thresh)])
     dst_pts.append([img_w, np.random.randint(thresh)])
     dst_pts.append([img_w, img_h - np.random.randint(thresh)])
