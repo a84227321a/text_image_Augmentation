@@ -15,10 +15,12 @@ class WarpMLS:
         self.dst_h = dst_h
         self.trans_ratio = trans_ratio
         self.grid_size = 100
+        # 拟合矩阵
         self.rdx = np.zeros((self.dst_h, self.dst_w))
         self.rdy = np.zeros((self.dst_h, self.dst_w))
 
     @staticmethod
+    # 双线性插值
     def __bilinear_interp(x, y, v11, v12, v21, v22):
         return (v11 * (1 - y) + v12 * y) * (1 - x) + (v21 * (1 - y) + v22 * y) * x
 
@@ -33,7 +35,8 @@ class WarpMLS:
             return
 
         i = 0
-        # 初始化i，j为0，
+        # 初始化i，j为0
+        # 更新拟合矩阵
         while 1:
             if self.dst_w <= i < self.dst_w + self.grid_size - 1:
                 i = self.dst_w - 1
@@ -53,13 +56,14 @@ class WarpMLS:
                 cur_pt = np.array([i, j], dtype=np.float32)
 
                 k = 0
+                # 每个采样点计算基函数，大小为1/点到各顶点的距离
                 for k in range(self.pt_count):
                     if i == self.dst_pts[k][0] and j == self.dst_pts[k][1]:
                         break
-
+                    # w[k]为权重，大小为1/两点距离
                     w[k] = 1. / ((i - self.dst_pts[k][0]) * (i - self.dst_pts[k][0]) +
                                  (j - self.dst_pts[k][1]) * (j - self.dst_pts[k][1]))
-
+                    # sw总权重
                     sw += w[k]
                     swp = swp + w[k] * np.array(self.dst_pts[k])
                     swq = swq + w[k] * np.array(self.src_pts[k])
@@ -121,7 +125,7 @@ class WarpMLS:
 
                 di = np.reshape(np.arange(h), (-1, 1))
                 dj = np.reshape(np.arange(w), (1, -1))
-                # 移动最小二乘法变形
+                # 由得到的俩个矩阵,计算各点变换后的结果
                 delta_x = self.__bilinear_interp(di / h, dj / w,
                                                  self.rdx[i, j], self.rdx[i, nj],
                                                  self.rdx[ni, j], self.rdx[ni, nj])

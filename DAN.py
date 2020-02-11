@@ -10,6 +10,7 @@ import resnet as resnet
 '''
 Feature_Extractor
 '''
+# 残差作为基础模型
 class Feature_Extractor(nn.Module):
     def __init__(self, strides, compress_layer, input_shape):
         super(Feature_Extractor, self).__init__()
@@ -19,7 +20,7 @@ class Feature_Extractor(nn.Module):
     def forward(self, input):
         features = self.model(input)
         return features
-
+    # FE层输出的size，传给CAM层的参数
     def Iwantshapes(self):
         pseudo_input = torch.rand(1, self.input_shape[0], self.input_shape[1], self.input_shape[2])
         features = self.model(pseudo_input)
@@ -30,6 +31,7 @@ Convolutional Alignment Module
 '''
 # Current version only supports input whose size is a power of 2, such as 32, 64, 128 etc. 
 # You can adapt it to any input size by changing the padding or stride.
+# 多维
 class CAM(nn.Module):
     def __init__(self, scales, maxT, depth, num_channels):
         super(CAM, self).__init__()
@@ -106,13 +108,14 @@ class CAM(nn.Module):
         x = self.deconvs[-1](x)
         return x
 
+# 1维
 class CAM_transposed(nn.Module):
 # In this version, the input channel is reduced to 1-D with sigmoid activation.
 # We found that this leads to faster convergence for 1-D recognition.
     def __init__(self, scales, maxT, depth, num_channels):
         super(CAM_transposed, self).__init__()
-        # cascade multiscale features
         fpn = []
+        # 得到多尺度特征
         for i in range(1, len(scales)):
             assert not (scales[i-1][1] / scales[i][1]) % 1, 'layers scale error, from {} to {}'.format(i-1, i)
             assert not (scales[i-1][2] / scales[i][2]) % 1, 'layers scale error, from {} to {}'.format(i-1, i)
@@ -133,10 +136,10 @@ class CAM_transposed(nn.Module):
                                  nn.Sigmoid()))
         self.fpn = nn.Sequential(*fpn)
         # convolutional alignment
-        # deconvs
         in_shape = scales[-1]
         deconvs = []
         ksize_h = 1 if in_shape[1] == 1 else 4
+        # 反卷积操作
         for i in range(1, depth / 2):
             deconvs.append(nn.Sequential(nn.ConvTranspose2d(num_channels, num_channels,
                                                            (ksize_h, 4),
@@ -144,6 +147,7 @@ class CAM_transposed(nn.Module):
                                                            (int(ksize_h/4.), 1)),
                                          nn.BatchNorm2d(num_channels),
                                          nn.ReLU(True)))
+        # 最长解码maxT
         deconvs.append(nn.Sequential(nn.ConvTranspose2d(num_channels, maxT,
                                                        (ksize_h, 4),
                                                        (r_h, 2), 
@@ -152,13 +156,14 @@ class CAM_transposed(nn.Module):
         self.deconvs = nn.Sequential(*deconvs)
     def forward(self, input):
         x = input[0]
+        # 卷积相加
         for i in range(0, len(self.fpn) - 1):
             x = self.fpn[i](x) + input[i+1]
         # Reducing the input to 1-D form
         x = self.fpn[-1](x)
         # Transpose B-C-H-W to B-W-C-H
         x = x.permute(0, 3, 1, 2).contiguous()
- 
+        # 反卷积
         for i in range(0, len(self.deconvs)):
             x = self.deconvs[i](x)
         return x
@@ -177,14 +182,15 @@ class DTD(nn.Module):
                             nn.Dropout(p = dropout),
                             nn.Linear(nchannel, nclass)
                         )
+        # 增加注意力机制，将不可训练的类型转换成可以训练的类型parameter
         self.char_embeddings = Parameter(torch.randn(nclass, nchannel))
 
     def forward(self, feature, A, text, text_length, test = False):
         nB, nC, nH, nW = feature.size()
         nT = A.size()[1]
-        # Normalize
+        # 标准化
         A = A / A.view(nB, nT, -1).sum(2).view(nB,nT,1,1)
-        # weighted sum
+        # 权重相加
         C = feature.view(nB, 1, nC, nH, nW) * A.view(nB, nT, 1, nH, nW)
         C = C.view(nB,nT,nC,-1).sum(3).transpose(1,0)
         C, _ = self.pre_lstm(C)
@@ -198,6 +204,7 @@ class DTD(nn.Module):
             out_attns = torch.zeros(lenText, nH, nW).type_as(A.data)
 
             hidden = torch.zeros(nB, self.nchannel).type_as(C.data)
+            # 从第一维中取
             prev_emb = self.char_embeddings.index_select(0, torch.zeros(nB).long().type_as(text.data))
             for i in range(0, nsteps):
                 hidden = self.rnn(torch.cat((C[i, :, :], prev_emb), dim = 1),
@@ -207,6 +214,7 @@ class DTD(nn.Module):
             gru_res = self.generator(gru_res)
 
             start = 0
+            # 根据标签长度，得到batch中的结果矩阵
             for i in range(0, nB):
                 cur_length = int(text_length[i])
                 out_res[start : start + cur_length] = gru_res[0: cur_length,i,:]

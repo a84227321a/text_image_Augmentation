@@ -5,13 +5,15 @@ import os
 from dataset_hw import *
 from DAN import *
 
+
+# 训练轮数，显示和测试轮数
 global_cfgs = {
     'state': 'Test',
     'epoch': 100,
     'show_interval': 50,
     'test_interval': 500
 }
-
+# 数据集和batch
 dataset_cfgs = {
     'dataset_train': IAMSynthesisDataset,
     'dataset_train_args': {
@@ -42,6 +44,7 @@ dataset_cfgs = {
     'dict_dir': 'dict/dic_79.txt'
 }
 
+# 模型参数以及初始化模型路径
 net_cfgs = {
     'FE': Feature_Extractor,
     'FE_args': {
@@ -70,6 +73,7 @@ net_cfgs = {
     # 'init_state_dict_cam': None,
     # 'init_state_dict_dtd': None,
 }
+
 
 optimizer_cfgs = {
     # optim for FE
@@ -110,6 +114,7 @@ optimizer_cfgs = {
     },
 }
 
+# 模型保存
 saving_cfgs = {
     'saving_iter_interval': 2000,
     'saving_epoch_interval': 3,
