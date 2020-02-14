@@ -42,3 +42,12 @@
 	
 	（2）推理阶段，不适用注意力指导机制
 
+2.23 GTC理解
+
+
+#GTC的本质是从atteion模型截取了特征提取模块的特征序列，然后加入带GCN的CTC识别分支。
+
+原因是模型的校正和特征提取参数训练是根据attention学习的,CTC仅影响CTC部分的参数。
+
+残差网络特征提取的Features是Height×Width×Channel。
+
